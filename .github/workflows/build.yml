@@ -32,4 +32,3 @@ jobs:
       with:
         name: Virtual-Itachi-APK
         path: app/build/outputs/apk/debug/*.apk
-
