@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Virtual Friend</string>
+    <string name="overlay_permission_title">Let your friend float above other apps</string>
+    <string name="overlay_permission_body">Virtual Friend uses Android's official overlay permission to show the companion while you use other apps. It never bypasses Android security.</string>
+</resources>
