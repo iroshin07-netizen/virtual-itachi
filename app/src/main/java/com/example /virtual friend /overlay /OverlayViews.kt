@@ -126,7 +126,12 @@ fun SummonButtonContent(onDrag: (Float, Float) -> Unit, onClick: () -> Unit) {
         }, contentAlignment = Alignment.Center
     ) {
         Surface(shape = RoundedCornerShape(50), tonalElevation = 6.dp, shadowElevation = 8.dp) {
-            Image(painterResource(R.drawable.itachi_front), "Summon Itachi", Modifier.size(58.dp).padding(4.dp), ContentScale.Fit)
+            Image(
+                painter = painterResource(R.drawable.itachi_front), 
+                contentDescription = "Summon Itachi", 
+                modifier = Modifier.size(58.dp).padding(4.dp), 
+                contentScale = ContentScale.Fit
+            )
         }
     }
 }
@@ -142,7 +147,12 @@ fun ChatPanelContent(
     Surface(shape = RoundedCornerShape(22.dp), tonalElevation = 8.dp, shadowElevation = 16.dp) {
         Column(Modifier.fillMaxSize().padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painterResource(R.drawable.itachi_front), "Itachi", Modifier.size(44.dp), ContentScale.Fit)
+                Image(
+                    painter = painterResource(R.drawable.itachi_front), 
+                    contentDescription = "Itachi", 
+                    modifier = Modifier.size(44.dp), 
+                    contentScale = ContentScale.Fit
+                )
                 Spacer(Modifier.width(8.dp))
                 Text("Itachi", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.weight(1f))
