@@ -67,7 +67,7 @@ class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewMo
     private var summonParams: WindowManager.LayoutParams? = null
     private var reminderJob: Job? = null
     private var settingsJob: Job? = null
-    private val chatManager = ChatManager()
+    private val chatManager by lazy { ChatManager(this) }
     private val chatMessages = mutableStateOf(listOf<Pair<Boolean, String>>())
     private var controller: FriendAnimationController? = null
 
