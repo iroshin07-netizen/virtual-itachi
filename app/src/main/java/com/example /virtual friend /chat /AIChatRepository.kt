@@ -7,7 +7,6 @@ import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
 
 interface AIChatRepository {
     suspend fun sendMessage(message: String, conversation: List<Pair<String, String>>): Result<String>
@@ -18,7 +17,7 @@ class BackendAIChatRepository(private val context: Context) : AIChatRepository {
     override suspend fun sendMessage(message: String, conversation: List<Pair<String, String>>): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
-                // Get the key and trim any accidental spaces
+                // Key extract karna aur extra spaces hatana
                 val sharedPrefs = context.getSharedPreferences("VirtualFriendPrefs", Context.MODE_PRIVATE)
                 val rawKey = sharedPrefs.getString("GEMINI_API_KEY", "")?.trim() ?: ""
                 
@@ -26,11 +25,8 @@ class BackendAIChatRepository(private val context: Context) : AIChatRepository {
                     return@withContext Result.failure(Exception("API Key is missing! Please paste it in settings."))
                 }
 
-                // URL-Encode the key to protect special characters like '.' and '_'
-                val encodedKey = URLEncoder.encode(rawKey, "UTF-8")
-                
-                // Using the ultra-stable gemini-pro model
-                val urlString = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$encodedKey"
+                // Latest Gemini 1.5 Flash model use karna bina encoding ke
+                val urlString = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$rawKey"
                 val url = URL(urlString)
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
@@ -72,7 +68,6 @@ class BackendAIChatRepository(private val context: Context) : AIChatRepository {
                     
                     Result.success(replyText)
                 } else {
-                    // Extract the exact error message from Google's server
                     val errorStream = connection.errorStream
                     val errorResponse = errorStream?.bufferedReader()?.use { it.readText() } ?: "No details"
                     var cleanErrorMsg = errorResponse
@@ -81,7 +76,7 @@ class BackendAIChatRepository(private val context: Context) : AIChatRepository {
                         cleanErrorMsg = errJson.getJSONObject("error").getString("message")
                     } catch (e: Exception) {}
                     
-                    Result.failure(Exception("Google API Error: $cleanErrorMsg"))
+                    Result.failure(Exception("API Error: $cleanErrorMsg"))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
