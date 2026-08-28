@@ -38,21 +38,41 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         lifecycleScope.launch {
-            val onboarding = repo.onboardingComplete.first()
-            val s = repo.settings.first()
-            if (onboarding && s.enabled && Settings.canDrawOverlays(this@MainActivity)) startFriendService()
+            try {
+                val onboarding = repo.onboardingComplete.first()
+                val s = repo.settings.first()
+                if (onboarding && s.enabled && Settings.canDrawOverlays(this@MainActivity)) {
+                    startFriendService()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
     private fun startFriendService() {
-        val intent = Intent(this, FriendOverlayService::class.java)
-        if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+        try {
+            val intent = Intent(this, FriendOverlayService::class.java)
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
-    private fun stopFriendService() { stopService(Intent(this, FriendOverlayService::class.java)) }
+    private fun stopFriendService() { 
+        try {
+            stopService(Intent(this, FriendOverlayService::class.java)) 
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     private fun openOverlaySettings() {
-        startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+        try {
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun requestNotifications() {
@@ -222,8 +242,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun sendAction(action: String) {
-        val i = Intent(this, FriendOverlayService::class.java).setAction(action)
-        if (Build.VERSION.SDK_INT >= 26) startForegroundService(i) else startService(i)
+        try {
+            val i = Intent(this, FriendOverlayService::class.java).setAction(action)
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(i) else startService(i)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun pickTime(minutes: Int, onPicked: (Int) -> Unit) {
