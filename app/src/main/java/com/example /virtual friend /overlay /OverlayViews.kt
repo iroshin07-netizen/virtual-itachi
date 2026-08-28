@@ -4,6 +4,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -66,18 +67,19 @@ fun PetOverlayContent(
         }, animationSpec = tween(260), label = "squash"
     )
     Box(
-        modifier = Modifier.fillMaxSize().pointerInput(Unit) {
-            var moved = false
-            detectDragGestures(
-                onDragStart = { moved = false },
-                onDrag = { change, dragAmount ->
-                    moved = true
-                    change.consume()
-                    onDrag(dragAmount.x, dragAmount.y)
-                },
-                onDragEnd = { if (!moved) onClick() }
-            )
-        },
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { onClick() })
+            }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(dragAmount.x, dragAmount.y)
+                    }
+                )
+            },
         contentAlignment = Alignment.Center
     ) {
         Image(
@@ -116,14 +118,20 @@ fun PetOverlayContent(
 @Composable
 fun SummonButtonContent(onDrag: (Float, Float) -> Unit, onClick: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize().pointerInput(Unit) {
-            var moved = false
-            detectDragGestures(
-                onDragStart = { moved = false },
-                onDrag = { change, dragAmount -> moved = true; change.consume(); onDrag(dragAmount.x, dragAmount.y) },
-                onDragEnd = { if (!moved) onClick() }
-            )
-        }, contentAlignment = Alignment.Center
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { onClick() })
+            }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDrag = { change, dragAmount -> 
+                        change.consume()
+                        onDrag(dragAmount.x, dragAmount.y) 
+                    }
+                )
+            }, 
+        contentAlignment = Alignment.Center
     ) {
         Surface(shape = RoundedCornerShape(50), tonalElevation = 6.dp, shadowElevation = 8.dp) {
             Image(
