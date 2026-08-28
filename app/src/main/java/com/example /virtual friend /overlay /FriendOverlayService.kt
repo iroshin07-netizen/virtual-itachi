@@ -21,6 +21,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.example.virtualfriend.MainActivity
 import com.example.virtualfriend.R
 import com.example.virtualfriend.chat.ChatManager
 import com.example.virtualfriend.data.SettingsRepository
@@ -74,7 +75,10 @@ class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewMo
         super.onCreate()
         savedStateController.performRestore(null)
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
-        repo = SettingsRepository(applicationContext)
+        
+        // Yeh line main fix hai - Shared repository connect karna!
+        repo = MainActivity.getRepo(this)
+        
         createNotificationChannel()
 
         try {
@@ -350,4 +354,3 @@ class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewMo
 
     override fun onBind(intent: Intent): IBinder? = super.onBind(intent)
 }
-
