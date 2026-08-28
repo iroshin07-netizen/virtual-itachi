@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +24,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.virtualfriend.R
-import com.example.virtualfriend.chat.ChatManager
 import com.example.virtualfriend.model.FriendAnimationState
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -152,6 +153,15 @@ fun ChatPanelContent(
 ) {
     val scope = rememberCoroutineScope()
     var input by remember { mutableStateOf(TextFieldValue()) }
+    
+    // Yahan Scroll State aur Auto-Scroll logic add kiya hai
+    val scrollState = rememberScrollState()
+    LaunchedEffect(messages.size) {
+        if (scrollState.maxValue > 0) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+
     Surface(shape = RoundedCornerShape(22.dp), tonalElevation = 8.dp, shadowElevation = 16.dp) {
         Column(Modifier.fillMaxSize().padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -167,7 +177,9 @@ fun ChatPanelContent(
                 TextButton(onClick = onClose) { Text("Close") }
             }
             HorizontalDivider()
-            Column(Modifier.weight(1f).fillMaxWidth().padding(vertical = 8.dp)) {
+            
+            // Yahan box ko scrollable banaya gaya hai
+            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState).padding(vertical = 8.dp)) {
                 messages.forEach { (mine, text) ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
                         Surface(shape = RoundedCornerShape(14.dp), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
@@ -177,6 +189,7 @@ fun ChatPanelContent(
                     Spacer(Modifier.height(5.dp))
                 }
             }
+            
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextField(input, { input = it }, Modifier.weight(1f), placeholder = { Text("Say something…") }, singleLine = true)
                 Spacer(Modifier.width(6.dp))
