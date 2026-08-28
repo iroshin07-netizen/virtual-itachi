@@ -12,8 +12,15 @@ import android.view.inputmethod.InputMethodManager
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.example.virtualfriend.R
 import com.example.virtualfriend.chat.ChatManager
 import com.example.virtualfriend.data.SettingsRepository
@@ -21,12 +28,11 @@ import com.example.virtualfriend.model.FriendAnimationState
 import com.example.virtualfriend.model.FriendSettings
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 
-class FriendOverlayService : LifecycleService() {
+class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewModelStoreOwner {
     companion object {
         const val ACTION_SUMMON = "com.example.virtualfriend.SUMMON"
         const val ACTION_TOGGLE = "com.example.virtualfriend.TOGGLE"
@@ -38,6 +44,15 @@ class FriendOverlayService : LifecycleService() {
         private const val CHANNEL_ID = "virtual_friend"
         private const val NOTIFICATION_ID = 77
     }
+
+    private val savedStateController = SavedStateRegistryController.create(this)
+    private val store = ViewModelStore()
+
+    override val savedStateRegistry: SavedStateRegistry
+        get() = savedStateController.savedStateRegistry
+
+    override val viewModelStore: ViewModelStore
+        get() = store
 
     private lateinit var wm: WindowManager
     private lateinit var repo: SettingsRepository
@@ -57,10 +72,11 @@ class FriendOverlayService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        savedStateController.performRestore(null)
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         repo = SettingsRepository(applicationContext)
         createNotificationChannel()
-        
+
         try {
             if (Build.VERSION.SDK_INT >= 34) {
                 startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -70,7 +86,7 @@ class FriendOverlayService : LifecycleService() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        
+
         observeSettings()
     }
 
@@ -122,6 +138,8 @@ class FriendOverlayService : LifecycleService() {
             petParams = overlayParams(400, 340, settings.value.petX, settings.value.petY, focusable = false)
             petView = ComposeView(this).apply {
                 setViewTreeLifecycleOwner(this@FriendOverlayService)
+                setViewTreeSavedStateRegistryOwner(this@FriendOverlayService)
+                setViewTreeViewModelStoreOwner(this@FriendOverlayService)
                 setContent {
                     PetOverlayContent(
                         state = state.value,
@@ -139,6 +157,8 @@ class FriendOverlayService : LifecycleService() {
             summonParams = overlayParams(70, 70, settings.value.summonX, settings.value.summonY, focusable = false)
             summonView = ComposeView(this).apply {
                 setViewTreeLifecycleOwner(this@FriendOverlayService)
+                setViewTreeSavedStateRegistryOwner(this@FriendOverlayService)
+                setViewTreeViewModelStoreOwner(this@FriendOverlayService)
                 setContent { SummonButtonContent(::moveSummonBy, ::summon) }
             }
             runCatching { wm.addView(summonView, summonParams) }
@@ -212,7 +232,7 @@ class FriendOverlayService : LifecycleService() {
         controller?.summon()
         lifecycleScope.launch {
             delay(850)
-            controller?.speak(listOf("Water check? \uD83D\uDCA7", "Have you had some water?", "Hydration break?").random())
+            controller?.speak(listOf("Water check? 💧", "Have you had some water?", "Hydration break?").random())
         }
     }
 
@@ -240,6 +260,8 @@ class FriendOverlayService : LifecycleService() {
         val params = overlayParams(320, 430, x, y, focusable = true)
         chatView = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@FriendOverlayService)
+            setViewTreeSavedStateRegistryOwner(this@FriendOverlayService)
+            setViewTreeViewModelStoreOwner(this@FriendOverlayService)
             setContent {
                 ChatPanelContent(
                     messages = chatMessages.value,
@@ -306,7 +328,7 @@ class FriendOverlayService : LifecycleService() {
         val intent = Intent(this, com.example.virtualfriend.MainActivity::class.java)
         val pi = PendingIntent.getActivity(this, 1, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         return Notification.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.itachi_front)
             .setContentTitle("Virtual Friend is active")
             .setContentText("Your floating companion is nearby.")
             .setContentIntent(pi)
@@ -328,3 +350,4 @@ class FriendOverlayService : LifecycleService() {
 
     override fun onBind(intent: Intent): IBinder? = super.onBind(intent)
 }
+
