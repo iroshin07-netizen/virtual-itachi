@@ -11,7 +11,10 @@ class ChatManager(context: Context) {
     suspend fun reply(message: String, aiEnabled: Boolean, history: List<Pair<String, String>>): String {
         return withContext(Dispatchers.Default) {
             if (aiEnabled) {
-                ai.sendMessage(message, history).getOrElse { basic.reply(message) }
+                // Agar API fail hui, toh Itachi screen par ERROR reason dega, purana reply nahi.
+                ai.sendMessage(message, history).getOrElse { error ->
+                    "System Error: ${error.message ?: "Something went wrong. Check Internet/Key."}"
+                }
             } else {
                 basic.reply(message)
             }
