@@ -2,6 +2,7 @@ package com.example.virtualfriend.overlay
 
 import android.app.*
 import android.content.*
+import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
@@ -59,7 +60,17 @@ class FriendOverlayService : LifecycleService() {
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         repo = SettingsRepository(applicationContext)
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, notification())
+        
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            } else {
+                startForeground(NOTIFICATION_ID, notification())
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        
         observeSettings()
     }
 
@@ -201,7 +212,7 @@ class FriendOverlayService : LifecycleService() {
         controller?.summon()
         lifecycleScope.launch {
             delay(850)
-            controller?.speak(listOf("Water check? 💧", "Have you had some water?", "Hydration break?").random())
+            controller?.speak(listOf("Water check? \uD83D\uDCA7", "Have you had some water?", "Hydration break?").random())
         }
     }
 
