@@ -9,7 +9,8 @@ import android.os.IBinder
 import android.provider.Settings
 import android.view.*
 import android.view.inputmethod.InputMethodManager
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.ViewModelStore
@@ -29,6 +30,7 @@ import com.example.virtualfriend.model.FriendAnimationState
 import com.example.virtualfriend.model.FriendSettings
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
@@ -57,9 +59,13 @@ class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewMo
 
     private lateinit var wm: WindowManager
     private lateinit var repo: SettingsRepository
-    private val state = mutableStateOf(FriendAnimationState.IDLE)
-    private val message = mutableStateOf<String?>(null)
-    private val settings = mutableStateOf(FriendSettings())
+    
+    // UI LIVE Refresh fix (MutableStateFlow added)
+    private val state = MutableStateFlow(FriendAnimationState.IDLE)
+    private val message = MutableStateFlow<String?>(null)
+    private val settings = MutableStateFlow(FriendSettings())
+    private val chatMessages = MutableStateFlow(listOf<Pair<Boolean, String>>())
+    
     private var petView: ComposeView? = null
     private var summonView: ComposeView? = null
     private var chatView: ComposeView? = null
@@ -68,15 +74,12 @@ class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewMo
     private var reminderJob: Job? = null
     private var settingsJob: Job? = null
     private val chatManager by lazy { ChatManager(this) }
-    private val chatMessages = mutableStateOf(listOf<Pair<Boolean, String>>())
     private var controller: FriendAnimationController? = null
 
     override fun onCreate() {
         super.onCreate()
         savedStateController.performRestore(null)
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
-        
-        // Yeh line main fix hai - Shared repository connect karna!
         repo = MainActivity.getRepo(this)
         
         createNotificationChannel()
@@ -139,17 +142,23 @@ class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewMo
     private fun ensureWindows() {
         if (!Settings.canDrawOverlays(this)) return
         if (petView == null) {
-            petParams = overlayParams(400, 340, settings.value.petX, settings.value.petY, focusable = false)
+            // Box size increased from 400 to 600 for scaling fix
+            petParams = overlayParams(600, 600, settings.value.petX, settings.value.petY, focusable = false)
             petView = ComposeView(this).apply {
                 setViewTreeLifecycleOwner(this@FriendOverlayService)
                 setViewTreeSavedStateRegistryOwner(this@FriendOverlayService)
                 setViewTreeViewModelStoreOwner(this@FriendOverlayService)
                 setContent {
+                    // Observing values LIVE
+                    val currentSettings by settings.collectAsState()
+                    val currentState by state.collectAsState()
+                    val currentMessage by message.collectAsState()
+
                     PetOverlayContent(
-                        state = state.value,
-                        sizeScale = settings.value.friendSize,
-                        message = message.value,
-                        bubbleOnLeft = settings.value.petX > screenWidth() / 2,
+                        state = currentState,
+                        sizeScale = currentSettings.friendSize,
+                        message = currentMessage,
+                        bubbleOnLeft = currentSettings.petX > screenWidth() / 2,
                         onDrag = ::movePetBy,
                         onClick = { showChatPanel() }
                     )
@@ -158,7 +167,7 @@ class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewMo
             runCatching { wm.addView(petView, petParams) }
         }
         if (settings.value.summonButtonEnabled && summonView == null) {
-            summonParams = overlayParams(70, 70, settings.value.summonX, settings.value.summonY, focusable = false)
+            summonParams = overlayParams(100, 100, settings.value.summonX, settings.value.summonY, focusable = false)
             summonView = ComposeView(this).apply {
                 setViewTreeLifecycleOwner(this@FriendOverlayService)
                 setViewTreeSavedStateRegistryOwner(this@FriendOverlayService)
@@ -236,7 +245,7 @@ class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewMo
         controller?.summon()
         lifecycleScope.launch {
             delay(850)
-            controller?.speak(listOf("Water check? 💧", "Have you had some water?", "Hydration break?").random())
+            controller?.speak(listOf("Water check? \uD83D\uDCA7", "Have you had some water?", "Hydration break?").random())
         }
     }
 
@@ -262,16 +271,21 @@ class FriendOverlayService : LifecycleService(), SavedStateRegistryOwner, ViewMo
         val x = clamp(p.x - 20, 8, max(8, screenWidth() - 328))
         val y = clamp(p.y - 430, 20, max(20, screenHeight() - 450))
         val params = overlayParams(320, 430, x, y, focusable = true)
+        
         chatView = ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@FriendOverlayService)
             setViewTreeSavedStateRegistryOwner(this@FriendOverlayService)
             setViewTreeViewModelStoreOwner(this@FriendOverlayService)
             setContent {
+                // Observing messages LIVE
+                val currentMessages by chatMessages.collectAsState()
+                val currentSettings by settings.collectAsState()
+                
                 ChatPanelContent(
-                    messages = chatMessages.value,
+                    messages = currentMessages,
                     onSend = { text ->
                         chatMessages.value = chatMessages.value + (true to text)
-                        val reply = chatManager.reply(text, settings.value.aiChatEnabled, chatMessages.value.map { it.second to "" })
+                        val reply = chatManager.reply(text, currentSettings.aiChatEnabled, chatMessages.value.map { it.second to "" })
                         chatMessages.value = chatMessages.value + (false to reply)
                     },
                     onClose = ::hideChatPanel
