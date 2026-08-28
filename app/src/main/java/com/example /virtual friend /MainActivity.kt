@@ -140,10 +140,34 @@ class MainActivity : ComponentActivity() {
     private fun SettingsScreen(settings: FriendSettings) {
         val overlayGranted = Settings.canDrawOverlays(this)
         val context = this
+        val sharedPrefs = context.getSharedPreferences("VirtualFriendPrefs", Context.MODE_PRIVATE)
+        var apiKeyInput by remember { mutableStateOf(sharedPrefs.getString("GEMINI_API_KEY", "") ?: "") }
+
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp)) {
             Text("Virtual Friend", style = MaterialTheme.typography.headlineMedium)
             Text("Itachi companion settings", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(18.dp))
+            
+            // API KEY UI BOX
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Gemini API Key", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = apiKeyInput,
+                        onValueChange = { 
+                            apiKeyInput = it
+                            sharedPrefs.edit().putString("GEMINI_API_KEY", it).apply()
+                        },
+                        placeholder = { Text("Paste API Key here...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text("Saved securely on your device. Never shared.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
 
             if (!overlayGranted) {
                 Card(Modifier.fillMaxWidth()) {
