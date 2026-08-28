@@ -2,6 +2,7 @@ package com.example.virtualfriend
 
 import android.Manifest
 import android.app.TimePickerDialog
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -26,12 +27,23 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        @Volatile
+        private var sharedRepo: SettingsRepository? = null
+
+        fun getRepo(context: Context): SettingsRepository {
+            return sharedRepo ?: synchronized(this) {
+                sharedRepo ?: SettingsRepository(context.applicationContext).also { sharedRepo = it }
+            }
+        }
+    }
+
     private lateinit var repo: SettingsRepository
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        repo = SettingsRepository(this)
+        repo = getRepo(this)
         setContent { VirtualFriendApp() }
     }
 
